@@ -1,7 +1,7 @@
 results_original/
 results_mnist/
 results/
-results_rl/
+results_rl_hopper/
 wandb/
 videos/
 checkpoints/

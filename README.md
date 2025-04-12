@@ -10,8 +10,8 @@ Examining the training of an mujoco hopper agent. We can see the saturation of r
 | <img src="preliminary/actor_topology_start.png" width="300"/> | <img src="preliminary/critic_topology_start.png" width="300"/> |
 | Actor Topology at 532480 Environmental Step   | Critic Topology at 532480 Environmental Step          |
 | <img src="preliminary/actor_topology_walk.png" width="300"/> | <img src="preliminary/critic_topology_walk.png" width="300"/> |
-| Hopper Rendering at 20480 Step   | Hopper Rendering at 532480 Step          |
-| Fall Directly | <img src="preliminary/hopper.gif" width="200"/> |
+| Betti Number Trend   | Hopper Rendering at 532480 Step          |
+| <img src="preliminary/hopper_total_betti.png" width="300"/> | <img src="preliminary/hopper.gif" width="200"/> |
 
 The training runs and topological characteristic changes over time are also captured in this [wandb training log](https://wandb.ai/kaiwenbian107/hopper_ppo_topology_analysis?nw=nwuserkaiwenbian107)
 
