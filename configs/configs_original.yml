@@ -1,0 +1,26 @@
+results_dir: "results_original"
+
+batch_size: 64
+num_epochs: 300
+learning_rate: 0.001
+validation_split: 0.2
+test_split: 0.1
+
+activations:
+  - relu
+  - leaky_relu
+  - tanh
+
+architectures:
+  D-I:
+    input_dim: 2
+    hidden_dims: [15, 15, 15]
+    output_dim: 1
+  D-II:
+    input_dim: 3
+    hidden_dims: [15, 15, 15]
+    output_dim: 1
+  D-III:
+    input_dim: 3
+    hidden_dims: [15, 15, 15]
+    output_dim: 1

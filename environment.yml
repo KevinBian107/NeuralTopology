@@ -19,3 +19,8 @@ dependencies:
     - networkx==2.5
     - jupyter==1.0.0
     - tqdm
+    - gymnasium
+    - wandb
+
+# pip install "gymnasium[mujoco]"
+# pip install "gymnasium[other]"

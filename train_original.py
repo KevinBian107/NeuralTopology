@@ -14,7 +14,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.manifold import TSNE
 from sklearn.model_selection import train_test_split
 import gudhi as gd
 import networkx as nx
@@ -22,7 +21,8 @@ import networkx as nx
 from ripser import ripser
 from persim import plot_diagrams
 
-# Set random seeds for reproducibility
+import yaml
+
 np.random.seed(42)
 torch.manual_seed(42)
 torch.cuda.manual_seed(42)
@@ -31,9 +31,9 @@ torch.cuda.manual_seed(42)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-#--------------------------#
-# PART 1: Data Generation  #
-#--------------------------#
+#----------------------------------------------------------------#
+# Data Generation According to  https://arxiv.org/pdf/2004.06093 #
+#----------------------------------------------------------------#
 
 def generate_dataset_D1(num_samples=8000):
     """
@@ -281,7 +281,7 @@ def visualize_dataset(X, y, dataset_name, dim=3):
     plt.close()
 
 #---------------------------#
-# PART 2: Neural Networks   #
+# Architecture              #
 #---------------------------#
 
 class NeuralNetwork(nn.Module):
@@ -290,7 +290,6 @@ class NeuralNetwork(nn.Module):
     def __init__(self, input_dim, hidden_dims, output_dim, activation='relu'):
         super(NeuralNetwork, self).__init__()
         
-        # Activation choice
         if activation == 'relu':
             self.activation = nn.ReLU()
         elif activation == 'leaky_relu':
@@ -302,34 +301,27 @@ class NeuralNetwork(nn.Module):
         
         self.layers = nn.ModuleList()
         
-        # Input layer
         self.layers.append(nn.Linear(input_dim, hidden_dims[0]))
         
-        # Hidden layers
         for i in range(len(hidden_dims) - 1):
             self.layers.append(nn.Linear(hidden_dims[i], hidden_dims[i+1]))
         
-        # Output layer
         self.layers.append(nn.Linear(hidden_dims[-1], output_dim))
         
         self.output_activation = nn.Sigmoid()
     
     def forward(self, x):
-        # Will store for topology analysis
         self.intermediate_activations = []
         
-        # Input layer
         x = self.layers[0](x)
         x = self.activation(x)
         self.intermediate_activations.append(x.detach())
         
-        # Hidden layers
         for i in range(1, len(self.layers) - 1):
             x = self.layers[i](x)
             x = self.activation(x)
             self.intermediate_activations.append(x.detach())
         
-        # Output layer
         x = self.layers[-1](x)
         x = self.output_activation(x)
         return x
@@ -418,7 +410,6 @@ def train_network(model, train_loader, val_loader, criterion, optimizer, num_epo
                   f'Val Loss: {val_loss:.4f} | '
                   f'Val Accuracy: {val_accuracy:.2f}%')
         
-        # Early stopping
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             epochs_no_improve = 0
@@ -431,7 +422,7 @@ def train_network(model, train_loader, val_loader, criterion, optimizer, num_epo
     return train_losses, val_losses
 
 #---------------------------#
-# PART 3: Topology Analysis #
+# Topology Analysis         #
 #---------------------------#
 
 def compute_graph_geodesic_distance(X, k=15):
@@ -501,7 +492,6 @@ def perform_topology_analysis(network, dataloader, class_idx=0, k=15, threshold=
     2) Get layer activations.
     3) Compute persistent homology and Betti numbers.
     """
-    # Gather all samples and labels
     all_inputs = []
     all_labels = []
     for inputs, labels in dataloader:
@@ -514,22 +504,18 @@ def perform_topology_analysis(network, dataloader, class_idx=0, k=15, threshold=
     all_inputs = np.vstack(all_inputs)
     all_labels = np.hstack(all_labels)
     
-    # Filter by class
     class_data = all_inputs[all_labels == class_idx]
     
     # ----------------- GUARD CLAUSE FIX -----------------
     if len(class_data) == 0:
         print(f"No samples found for class {class_idx}. Skipping topology analysis.")
         return []
-    # ----------------------------------------------------
     
-    # Build a dataloader for that class
     class_data_tensor = torch.tensor(class_data, dtype=torch.float32).to(device)
     class_labels_tensor = torch.zeros(len(class_data), dtype=torch.long).to(device)
     class_dataset = TensorDataset(class_data_tensor, class_labels_tensor)
     class_dataloader = DataLoader(class_dataset, batch_size=64, shuffle=False)
     
-    # Activations
     layer_activations = network.get_layer_activations(class_dataloader)
     
     # Compute Betti for input data
@@ -573,7 +559,6 @@ def visualize_topology_change(layer_betti, activation_name, dataset_name, class_
     for dim in range(max_dim+1):
         plt.plot(layer_betti[:, dim], marker='o', label=f'β{dim}')
     
-    # Summation of betti
     total = np.sum(layer_betti, axis=1)
     plt.plot(total, marker='s', linestyle='--', color='black', label='Total')
     
@@ -587,45 +572,26 @@ def visualize_topology_change(layer_betti, activation_name, dataset_name, class_
     plt.savefig(f"topology_change_{activation_name}_{dataset_name}_{class_name}.png", dpi=300, bbox_inches='tight')
     plt.close()
 
-#----------------------#
-# PART 4: Main Script  #
-#----------------------#
+#------------------------#
+# Generate + Train + TDA #
+#------------------------#
 
-def main():
-    # Create directory for results
-    os.makedirs("results", exist_ok=True)
-    os.chdir("results")
+if __name__ == "__main__":
+    with open("configs/configs_original.yml", "r") as f:
+        config = yaml.safe_load(f)
+
+    results_dir = config["results_dir"]
+    batch_size = config["batch_size"]
+    num_epochs = config["num_epochs"]
+    learning_rate = config["learning_rate"]
+    validation_split = config["validation_split"]
+    test_split = config["test_split"]
+    activations = config["activations"]
+    architectures = config["architectures"]
+
+    os.makedirs(results_dir, exist_ok=True)
+    os.chdir(results_dir)
     
-    # Parameters
-    batch_size = 64
-    num_epochs = 300
-    learning_rate = 0.001
-    validation_split = 0.2
-    test_split = 0.1
-    
-    # Activations to try
-    activations = ['relu', 'leaky_relu', 'tanh']
-    
-    # Architecture
-    architectures = {
-        'D-I': {
-            'input_dim': 2,
-            'hidden_dims': [15, 15, 15, 15, 15, 15, 15, 15],
-            'output_dim': 1
-        },
-        'D-II': {
-            'input_dim': 3,
-            'hidden_dims': [15, 15, 15, 15, 15, 15, 15, 15],
-            'output_dim': 1
-        },
-        'D-III': {
-            'input_dim': 3,
-            'hidden_dims': [15, 15, 15, 15, 15, 15, 15, 15],
-            'output_dim': 1
-        }
-    }
-    
-    # Generate and visualize datasets
     datasets = {
         'D-I': generate_dataset_D1(),
         'D-II': generate_dataset_D2(),
@@ -637,25 +603,20 @@ def main():
         visualize_dataset(X, y, name, dim=dim)
         print(f"Generated dataset {name} with {X.shape[0]} samples in {dim}D")
     
-    # Train/test across datasets
     for dataset_name, (X, y) in datasets.items():
         print(f"\nProcessing dataset {dataset_name}...")
         
-        # ----------------- STRATIFIED SPLIT FIX -----------------
-        # This ensures each split has both classes if possible:
+        # Stratified train/val/test splits
         X_trainval, X_test, y_trainval, y_test = train_test_split(
             X, y, test_size=test_split, stratify=y, random_state=42
         )
-        # Now split trainval into train/val
         X_train, X_val, y_train, y_val = train_test_split(
             X_trainval, y_trainval,
             test_size=validation_split / (1.0 - test_split),
             stratify=y_trainval,
             random_state=42
         )
-        # --------------------------------------------------------
         
-        # Make DataLoaders
         train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32),
                                       torch.tensor(y_train, dtype=torch.long))
         val_dataset = TensorDataset(torch.tensor(X_val, dtype=torch.float32),
@@ -707,15 +668,13 @@ def main():
                     total += targets.size(0)
                     correct += (predicted.view(-1) == targets).sum().item()
             
-            test_loss = test_loss / len(test_loader.dataset)
+            test_loss /= len(test_loader.dataset)
             test_accuracy = 100 * correct / total
             
             print(f'Test Loss: {test_loss:.4f} | Test Accuracy: {test_accuracy:.2f}%')
             
-            # Save model
             torch.save(net.state_dict(), f"{dataset_name}_{activation}_model.pth")
             
-            # Plot losses
             plt.figure(figsize=(10, 6))
             plt.plot(train_losses, label='Training Loss')
             plt.plot(val_losses, label='Validation Loss')
@@ -752,11 +711,5 @@ def main():
                 max_dim=X.shape[1]
             )
             visualize_topology_change(mb_betti, activation, dataset_name, class_name="Mb")
-            
-            # OPTIONAL: t-SNE layer activation plots can also be done here
-            # Omitted for brevity or keep as in your original code if desired
     
     print("\nAnalysis complete.")
-
-if __name__ == "__main__":
-    main()

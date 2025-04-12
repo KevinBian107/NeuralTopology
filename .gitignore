@@ -1,3 +1,8 @@
 results_original/
-MNIST/
 results_mnist/
+results/
+results_rl/
+wandb/
+videos/
+checkpoints/
+MNIST/
