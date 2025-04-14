@@ -24,3 +24,4 @@ dependencies:
 
 # pip install "gymnasium[mujoco]"
 # pip install "gymnasium[other]"
+# pip install "gymnasium[box2d]"

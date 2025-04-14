@@ -47,21 +47,21 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 class PPOAgent(nn.Module):
     """PPO Agent with policy and value networks that store activations for topology analysis."""
     
-    def __init__(self, envs):
+    def __init__(self, envs, hidden_size=64):
         super().__init__()
         
         self.activation = nn.Tanh()
             
         # Actor network
-        self.actor_input = layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64))
-        self.actor_hidden = layer_init(nn.Linear(64, 64))
-        self.actor_mean = layer_init(nn.Linear(64, np.prod(envs.single_action_space.shape)), std=0.01)
+        self.actor_input = layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), hidden_size))
+        self.actor_hidden = layer_init(nn.Linear(hidden_size, hidden_size))
+        self.actor_mean = layer_init(nn.Linear(hidden_size, np.prod(envs.single_action_space.shape)), std=0.01)
         self.actor_logstd = nn.Parameter(torch.zeros(1, np.prod(envs.single_action_space.shape)))
         
         # Critic network
-        self.critic_input = layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64))
-        self.critic_hidden = layer_init(nn.Linear(64, 64))
-        self.critic_output = layer_init(nn.Linear(64, 1), std=1.0)
+        self.critic_input = layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), hidden_size))
+        self.critic_hidden = layer_init(nn.Linear(hidden_size, hidden_size))
+        self.critic_output = layer_init(nn.Linear(hidden_size, 1), std=1.0)
         
         # Store intermediate activations
         self.reset_activations()
@@ -151,7 +151,7 @@ def make_env(env_id, seed, idx, capture_video, run_name):
         # env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
         env = ClipObservationWrapper(env, -10, 10)
         env = gym.wrappers.NormalizeReward(env, gamma=0.99)
-        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -100, 100))
         
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
@@ -539,6 +539,7 @@ def visualize_topology_over_time(topology_results, save_dir='results'):
 def train_hopper_with_topology_analysis(
     env_id="Hopper-v4",
     seed=42,
+    hidden_szie=64,
     total_timesteps=1_000_000,
     learning_rate=3e-4,
     num_envs=4,
@@ -567,6 +568,7 @@ def train_hopper_with_topology_analysis(
     wandb.config.update({
         "env_id": env_id,
         "seed": seed,
+        "hidden_szie": hidden_szie,
         "total_timesteps": total_timesteps,
         "learning_rate": learning_rate,
         "num_envs": num_envs,
@@ -600,7 +602,7 @@ def train_hopper_with_topology_analysis(
     
     assert isinstance(envs.single_action_space, gym.spaces.Box), "only continuous action space is supported"
     
-    agent = PPOAgent(envs).to(device)
+    agent = PPOAgent(envs, hidden_size=hidden_szie).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=learning_rate, eps=1e-5)
     
     obs = torch.zeros((num_steps, num_envs) + envs.single_observation_space.shape).to(device)

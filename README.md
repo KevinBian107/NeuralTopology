@@ -18,11 +18,11 @@ For TDA, teh following is performed:
 3. Run Ripser for Betti Number & Persistent Homology.
 
 ## Preliminary 📝
-Examining the training of an gymnasium mujoco `hopper-v4` & `walker-2d` agent. We can see the saturation of represenation as training progresses. We will see that for different task, the topological features that have been picking up by the agent may be drastically different. The training runs and topological characteristic changes over time are also captured in this [Wandb training log](https://wandb.ai/kaiwenbian107/hopper_ppo_topology_analysis?nw=nwuserkaiwenbian107).
+Examining the training of an gymnasium mujoco `Hopper-v4`, `Walker-2d`, and `BipedalWalker-v3` agents. We can see the saturation of represenation as training progresses. We will see that for different task, the topological features that have been picking up by the agent may be drastically different. The training runs and topological characteristic changes over time are also captured in this [Wandb training log](https://wandb.ai/kaiwenbian107/hopper_ppo_topology_analysis?nw=nwuserkaiwenbian107).
 
-- In hopper-4v environment, the deeper network seems to be amplifying topologicalfeatures from the input space.
+- Both in Hopper-4v environment and in the BipedalWalker-v3 environment, the deeper layer of the network seems to be amplifying topological features from the input space. This phenomenon is particularly occuring in the actor's weight space while teh critic's weights space tends to be more stable.
 
-- In walker-2d environment, the deeper network seems to be all trying to compress the lower dimension topological featuers from the input space into higher dimension topological structures. There seems to be an inverese corrolation between $\beta_2$ and $\beta_1$ across training (i.e. drop in $\beta_1$ and raise in $\beta_2$).
+- In Walker-2d environment, the deeper network seems to be all trying to compress the lower dimension topological featuers from the input space into higher dimension topological structures. There seems to be an inverese corrolation between $\beta_2$ and $\beta_1$ across training (i.e. drop in $\beta_1$ and raise in $\beta_2$). 
 
 ### Hopper-v4
 | Actor Topology at 20480 Environmental Step    | Critic Topology at 20480 Environmental Step           |
@@ -41,6 +41,16 @@ Examining the training of an gymnasium mujoco `hopper-v4` & `walker-2d` agent. W
 | <img src="preliminary/actor_walker_walk.png" width="400"/> | <img src="preliminary/critic_walker_walk.png" width="400"/> |
 | Betti Number Trend   | Walker-2d Rendering at 778240 Step          |
 | <img src="preliminary/walker_total_betti.png" width="450"/> | <img src="preliminary/walker.gif" width="300"/> |
+
+### BipedalWalker-v3
+| Actor Topology at 20480 Environmental Step    | Critic Topology at 20480 Environmental Step           |
+|--------------------------------------|--------------------------------------|
+| <img src="preliminary/actor_bipedal_start.png" width="400"/> | <img src="preliminary/critic_bipedal_start.png" width="400"/> |
+| Actor Topology at 921600 Environmental Step   | Critic Topology at 921600 Environmental Step          |
+| <img src="preliminary/actor_bipedal_walk.png" width="400"/> | <img src="preliminary/critic_bipedal_walk.png" width="400"/> |
+| Betti Number Trend   | BipedalWalker-v3 Rendering at 921600 Step          |
+| <img src="preliminary/bipedal_total_betti.png" width="450"/> | <img src="preliminary/bipedal.gif" width="400"/> |
+
 
 ## Acknowledgements
 This codebase structure implementation is based on the paper ["TOPOLOGY OF DEEP NEURAL NETWORKS"](https://arxiv.org/pdf/2004.06093).

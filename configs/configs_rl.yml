@@ -1,5 +1,6 @@
-env_id: "Walker2d" #"Hopper-v4"
+env_id: "BipedalWalker-v3" #"Walker2d" #"Hopper-v4"
 seed: 1
+hidden_szie: 64
 total_timesteps: 1000000
 learning_rate: 0.0003
 num_envs: 1
@@ -10,10 +11,10 @@ num_minibatches: 32
 update_epochs: 10
 clip_coef: 0.2
 clip_vloss: true   # was True in argparse
-ent_coef: 0.0
+ent_coef: 0.01
 vf_coef: 0.5
 max_grad_norm: 0.5
-target_kl: 0.01
-topology_analysis_interval: 10
-save_checkpoint_interval: 10
+target_kl: 0.1
+topology_analysis_interval: 50
+save_checkpoint_interval: 100
 capture_video: true  # was True in argparse
